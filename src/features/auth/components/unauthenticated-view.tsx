@@ -1,4 +1,6 @@
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item'
+import { Button } from '@/components/ui/button'
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item'
+import { SignInButton } from '@clerk/nextjs'
 import { ShieldAlertIcon } from 'lucide-react'
 import React from 'react'
 
@@ -17,6 +19,14 @@ const UnauthenticatedView = () => {
                         You are not authorized to access this resource.
                     </ItemDescription>
                 </ItemContent>
+
+                <ItemActions>
+                    <SignInButton>
+                        <Button variant={"outline"} size={"sm"}>
+                            Sign In 
+                        </Button>
+                    </SignInButton>
+                </ItemActions>
 
             </Item>
 
