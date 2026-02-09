@@ -34,7 +34,7 @@ export const helloWorld = inngest.createFunction(
         return await generateText({
             model:google("gemini-2.5-flash"),
             prompt:finalPrompt
-            // update
+            
         })
     })
   },
