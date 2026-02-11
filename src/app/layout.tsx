@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-   
+   <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${inter.variable} ${plexMono.variable} antialiased`}>
           <ThemeProvider
@@ -55,6 +55,7 @@ export default function RootLayout({
           </ThemeProvider>
         </body>
       </html>
+      </ClerkProvider>
 
   );
 }
