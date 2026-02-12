@@ -1,6 +1,6 @@
 "use client";
 
-import { ClerkProvider, useAuth, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
+import {  useAuth } from "@clerk/nextjs";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Authenticated, AuthLoading, ConvexReactClient, Unauthenticated } from "convex/react";
 import { ThemeProvider } from "./theme-provider";
@@ -15,7 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <ThemeProvider attribute="class" defaultTheme="dark">
           <Authenticated>
-            <UserButton />
+      
             {children}
           </Authenticated>
 
