@@ -5,15 +5,10 @@ import "./globals.css";
 
 import {
   ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
+ 
 } from "@clerk/nextjs";
 
-import { dark } from "@clerk/themes";
-import { ConvexClientProvider } from "@/components/convex-client-provider";
+
 import { Providers } from "@/components/providers";
 
 const inter = Inter({
