@@ -28,7 +28,7 @@ const getProjectIcon = (project: Doc<"projects">) => {
   }
   if (project?.importStatus === "importing") {
     return (
-      <Loader2Icon className="size-4 text-muted-foreground animate-spin" />
+      <Loader2Icon className="size-4 text-muted-foreground animate-spin " />
     );
   }
 
@@ -51,7 +51,7 @@ const ProjectsCommandDialog = ({
       open={open}
       onOpenChange={onOpenChange}
       title="Search Projects"
-      description="Search and navigation to your projects"
+      description="Search and navigation to your projects "
     >
       <CommandInput placeholder="Search projects"></CommandInput>
       <CommandList>
