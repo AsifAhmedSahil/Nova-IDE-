@@ -9,7 +9,7 @@ const CreateInput = ({
   onSubmit,
   onCancel,
 }: {
-  type: "file" | "folder";
+  type: "file" | "folder" ;
   level: number;
   onSubmit: (name: string) => void;
   onCancel: () => void;
