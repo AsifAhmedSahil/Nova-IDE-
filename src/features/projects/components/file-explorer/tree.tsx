@@ -16,6 +16,7 @@ import LoadingRow from "./loading-row";
 import { getItemPadding } from "./constants";
 import CreateInput from "./create-input";
 import RenameInput from "./rename-input";
+import { useEditor } from "@/features/editor/hooks/use-editor";
 
 const Tree = ({
   item,
@@ -34,6 +35,8 @@ const Tree = ({
   const deleteFile = useDeleteFile();
   const createFile = useCreateFile();
   const createFolder = useCreateFolder();
+
+  const {openFile,closeTab,activeTabId} = useEditor(projectId)
 
   const folderContents = useFolderContents({
     projectId,
@@ -77,6 +80,7 @@ const Tree = ({
 
   if (item.type === "file") {
     const fileName = item.name;
+    const isActive = activeTabId === item._id
 
     if(isRenaming){
       return(
@@ -93,12 +97,13 @@ const Tree = ({
       <TreeItemWRapper
         item={item}
         level={level}
-        isActive={false}
-        onClick={() => {}}
-        onDoubleClick={() => {}}
+        isActive={isActive}
+        onClick={() => openFile(item._id,{pinned:false})}
+        onDoubleClick={() =>  openFile(item._id,{pinned:true})}
         onRename={() => setIsRenaming(true)}
         onDelete={() => {
           // close
+          closeTab(item._id)
           deleteFile({ id: item._id });
         }}
       >
