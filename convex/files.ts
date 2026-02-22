@@ -243,6 +243,7 @@ export const renameFile = mutation({
     }
 
     // check file with the new name already exist in the parent folder or not
+    // update
 
     const sibilings = await ctx.db
       .query("files")
