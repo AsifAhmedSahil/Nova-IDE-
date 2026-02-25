@@ -1,13 +1,24 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 
-import {basicSetup,EditorView} from "codemirror"
-import {javascript} from "@codemirror/lang-javascript"
+import {basicSetup} from "codemirror"
+import { EditorView } from '@codemirror/view'
+import {indentWithTab} from "@codemirror/commands"
 import {oneDark} from "@codemirror/theme-one-dark"
 import { customTheme } from '../extensions/theme'
+import { getLanguageExtension } from '../extensions/language-extension'
+import { keymap } from '@codemirror/view'
+import { minimap } from '../extensions/minimap'
 
-const CodeEditor = () => {
+
+interface Props{
+    filename:string
+}
+
+const CodeEditor = ({filename}:Props) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null)
+
+    const languageExtension  = useMemo(()=>{ return getLanguageExtension(filename)},[filename])
 
     useEffect(()=>{
         if(!editorRef.current) return;
@@ -19,7 +30,10 @@ const CodeEditor = () => {
                 oneDark,
                 customTheme,
                 basicSetup,
-                javascript({typescript:true})
+                languageExtension,
+                keymap.of([indentWithTab]),
+                minimap()
+               
             ],
         })
 
