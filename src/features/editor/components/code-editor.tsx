@@ -36,6 +36,7 @@ const CodeEditor = ({filename}:Props) => {
                
             ],
         })
+        // update
 
         viewRef.current = view;
 
