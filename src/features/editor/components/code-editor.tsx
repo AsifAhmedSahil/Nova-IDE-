@@ -8,6 +8,7 @@ import { customTheme } from '../extensions/theme'
 import { getLanguageExtension } from '../extensions/language-extension'
 import { keymap } from '@codemirror/view'
 import { minimap } from '../extensions/minimap'
+import {indentationMarkers} from "@replit/codemirror-indentation-markers"
 
 
 interface Props{
@@ -32,7 +33,8 @@ const CodeEditor = ({filename}:Props) => {
                 basicSetup,
                 languageExtension,
                 keymap.of([indentWithTab]),
-                minimap()
+                minimap(),
+                indentationMarkers()
                
             ],
         })
