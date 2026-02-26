@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import TopNavigation from "./top-navigation";
 import { useEditor } from "../hooks/use-editor";
@@ -13,11 +13,18 @@ const EditorView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const updateFile = useUpdateFile();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
- const isActiveFileBinary = !!activeFile?.storageId;
-const isActiveFileText = !!activeFile && !activeFile.storageId;
+  const isActiveFileBinary = !!activeFile?.storageId;
+  const isActiveFileText = !!activeFile && !activeFile.storageId;
 
+  const DEBOUNCE_MS = 1500;
 
-  const DEBOUNCE_MS = 1500
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [activeTabId]);
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center">
@@ -41,23 +48,19 @@ const isActiveFileText = !!activeFile && !activeFile.storageId;
       {isActiveFileText && (
         <CodeEditor
           key={activeFile._id}
-          initialValue={activeFile.content }
+          initialValue={activeFile.content}
           onChange={(content: string) => {
             if (timeoutRef.current) {
               clearTimeout(timeoutRef.current);
             }
             timeoutRef.current = setTimeout(() => {
               updateFile({ id: activeFile._id, content });
-            } ,DEBOUNCE_MS);
+            }, DEBOUNCE_MS);
           }}
           filename={activeFile.name}
         />
       )}
-      {
-        isActiveFileBinary && (
-            <p>TODO: Implement binary preview</p>
-        )
-      }
+      {isActiveFileBinary && <p>TODO: Implement binary preview</p>}
     </div>
   );
 };
