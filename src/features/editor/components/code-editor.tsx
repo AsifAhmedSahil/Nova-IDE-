@@ -9,13 +9,16 @@ import { getLanguageExtension } from '../extensions/language-extension'
 import { keymap } from '@codemirror/view'
 import { minimap } from '../extensions/minimap'
 import {indentationMarkers} from "@replit/codemirror-indentation-markers"
+import { customSetup } from '../extensions/custom-setup'
 
 
 interface Props{
-    filename:string
+    filename:string;
+    initialValue?:string;
+    onChange:(value:string)=> void;
 }
 
-const CodeEditor = ({filename}:Props) => {
+const CodeEditor = ({filename,initialValue="",onChange}:Props) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null)
 
@@ -25,16 +28,21 @@ const CodeEditor = ({filename}:Props) => {
         if(!editorRef.current) return;
 
         const view = new EditorView({
-            doc:"Start document",
+            doc:initialValue,
             parent:editorRef.current,
             extensions:[
                 oneDark,
                 customTheme,
-                basicSetup,
+                customSetup,
                 languageExtension,
                 keymap.of([indentWithTab]),
                 minimap(),
-                indentationMarkers()
+                indentationMarkers(),
+                EditorView.updateListener.of((update)=>{
+                    if(update.docChanged){
+                        onChange(update.state.doc.toString());
+                    }
+                })
                
             ],
         })
@@ -46,7 +54,7 @@ const CodeEditor = ({filename}:Props) => {
             view.destroy()
         }
 
-    },[])
+    },[languageExtension])
   return (
     <div ref={editorRef} className='size-full pl-4 bg-background'>
         

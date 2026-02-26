@@ -5,7 +5,7 @@ import { EditorView } from "codemirror";
  export const customTheme = EditorView.theme({
     "&":{
         outline:"none !important",
-        height:"100%"
+        // height:"100%"
     },
     ".cm-content":{
         fontFamilt: "var(--font-plex-mono), monospace",
