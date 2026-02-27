@@ -10,6 +10,7 @@ import { keymap } from '@codemirror/view'
 import { minimap } from '../extensions/minimap'
 import {indentationMarkers} from "@replit/codemirror-indentation-markers"
 import { customSetup } from '../extensions/custom-setup'
+import { suggestion } from '../extensions/suggestion'
 
 
 interface Props{
@@ -35,6 +36,7 @@ const CodeEditor = ({filename,initialValue="",onChange}:Props) => {
                 customTheme,
                 customSetup,
                 languageExtension,
+                suggestion(filename),
                 keymap.of([indentWithTab]),
                 minimap(),
                 indentationMarkers(),
@@ -57,7 +59,7 @@ const CodeEditor = ({filename,initialValue="",onChange}:Props) => {
     },[languageExtension])
   return (
     <div ref={editorRef} className='size-full pl-4 bg-background'>
-        
+      TODO:
     </div>
   )
 }
