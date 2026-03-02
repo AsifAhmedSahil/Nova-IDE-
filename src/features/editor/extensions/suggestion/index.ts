@@ -172,9 +172,9 @@ const acceptSuggestionKeyMap = keymap.of([
         selection:{anchor:cursor + suggestion.length}, //move cursor to end
         effects: setSuggestionEffect.of(null) // clear the suggestion
       })
-      return true // we handled tab, don't indent
+      return true
     }
   }
 ])
-// update
+
 export const suggestion = (fileName: string) => [suggestionState,createDebouncePlugin(fileName), renderPlugin,acceptSuggestionKeyMap];
