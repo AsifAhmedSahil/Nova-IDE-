@@ -156,6 +156,8 @@ const renderPlugin = ViewPlugin.fromClass(
     }
 );
 
+// there are comment for update
+
 const acceptSuggestionKeyMap = keymap.of([
   {
     key:"Tab",
