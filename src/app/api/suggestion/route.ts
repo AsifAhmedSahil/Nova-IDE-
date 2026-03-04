@@ -1,9 +1,10 @@
 import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { anthropic } from "@ai-sdk/anthropic";
+// import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { suggestion } from "@/features/editor/extensions/suggestion";
+import { error } from "console";
 
 const suggestionSchema = z.object({
   suggestion: z
@@ -42,3 +43,45 @@ Follow these steps IN ORDER:
 
 Your suggestion is inserted immediately after the cursor, so never suggest code that's already in the file.
 </instructions>`;
+
+export async function POST(request: Request) {
+  try {
+    const {
+      fileName,
+      code,
+      currentLine,
+      previousLines,
+      textBeforeCursor,
+      textAfterCursor,
+      nextLines,
+      lineNumber,
+    } = await request.json();
+
+    if (!code) {
+      return NextResponse.json({ error: "Code is required" }, { status: 400 });
+    }
+
+    const prompt = SUGGESTION_PROMPT.replace("{fileName}", fileName)
+      .replace("{code}", code)
+      .replace("{currentLine}", currentLine)
+      .replace("{previousLines}", previousLines || "")
+      .replace("{textBeforeCursor}", textBeforeCursor)
+      .replace("{textAfterCursor}", textAfterCursor)
+      .replace("{nextLines}", nextLines || "")
+      .replace("{lineNumber}", lineNumber.toString());
+
+    const { output } = await generateText({
+      model: google("gemini-2.0-flash"),
+      output: Output.object({ schema: suggestionSchema }),
+      prompt,
+    });
+
+    return NextResponse.json({suggestion: output.suggestion})
+  } catch (error) {
+    console.log(error)
+    return NextResponse.json(
+      {error:"Failed to generate suggestion"},
+      {status:500}
+    )
+  }
+}
