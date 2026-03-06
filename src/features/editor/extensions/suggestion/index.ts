@@ -76,6 +76,7 @@ const generatePayload = (view: EditorView, fileName: string) => {
     lineNumber: currentLine.number,
   }
 }
+// update
 
 const generateFakeSuggestion = (textBeforeCursor: string): string | null => {
   const trimmed = textBeforeCursor.trimEnd();
