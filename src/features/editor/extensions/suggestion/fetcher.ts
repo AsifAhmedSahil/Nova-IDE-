@@ -43,6 +43,7 @@ export const fetcher = async (
     if (error instanceof Error && error.name === "AbortError") {
       return null;
     }
+    console.error("Suggestion fetch failed");
     toast.error("Failed to fetch AI completion");
     return null;
   }
