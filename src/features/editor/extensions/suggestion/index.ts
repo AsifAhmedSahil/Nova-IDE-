@@ -1,4 +1,3 @@
-import { StateEffect, StateField } from "@codemirror/state";
 import {
   Decoration,
   DecorationSet,
@@ -8,22 +7,36 @@ import {
   WidgetType,
   keymap,
 } from "@codemirror/view";
+import { StateEffect, StateField } from "@codemirror/state";
+
 import { fetcher } from "./fetcher";
 
+// StateEffect: A way to send "messages" to update state.
+// We define one effect type for setting the suggestion text.
 const setSuggestionEffect = StateEffect.define<string | null>();
 
+// StateField: Holds our suggestion state in the editor.
+// - create(): Returns the initial value when the editor loads
+// - update(): Called on every transaction (keystroke, etc.) to potentially update the value
 const suggestionState = StateField.define<string | null>({
   create() {
     return null;
   },
-  update(value, tr) {
-    for (const e of tr.effects) {
-      if (e.is(setSuggestionEffect)) return e.value;
+  update(value, transaction) {
+    // Check each effect in this transaction
+    // If we find our setSuggestionEffect, return its new value
+    // Otherwise, keep the current value unchanged
+    for (const effect of transaction.effects) {
+      if (effect.is(setSuggestionEffect)) {
+        return effect.value;
+      }
     }
     return value;
   },
 });
 
+// WidgetType: Creates custom DOM elements to display in the editor.
+// toDOM() is called by CodeMirror to create the actual HTML element.
 class SuggestionWidget extends WidgetType {
   constructor(readonly text: string) {
     super();
@@ -32,115 +45,114 @@ class SuggestionWidget extends WidgetType {
   toDOM() {
     const span = document.createElement("span");
     span.textContent = this.text;
-    span.style.opacity = "0.4";
-    span.style.pointerEvents = "none";
+    span.style.opacity = "0.4"; // Ghost text appearance
+    span.style.pointerEvents = "none"; // Don't interfere with clicks
     return span;
   }
 }
 
 let debounceTimer: number | null = null;
+let isWaitingForSuggestion = false;
+const DEBOUNCE_DELAY = 3000;
 let currentAbortController: AbortController | null = null;
 
-const DEBOUNCE_DELAY = 800;
-
 const generatePayload = (view: EditorView, fileName: string) => {
-  const fullCode = view.state.doc.toString();
+  const code = view.state.doc.toString();
+  if (!code || code.trim().length === 0) return null;
 
-  if (!fullCode.trim()) return null;
-
-  const code = fullCode.split("\n").slice(-120).join("\n");
-
-  const cursor = view.state.selection.main.head;
-  const line = view.state.doc.lineAt(cursor);
-  const cursorInLine = cursor - line.from;
-
-  if (/[;})]\s*$/.test(line.text)) return null;
+  const cursorPosition = view.state.selection.main.head;
+  const currentLine = view.state.doc.lineAt(cursorPosition);
+  const cursorInLine = cursorPosition - currentLine.from;
 
   const previousLines: string[] = [];
-  const prevCount = Math.min(5, line.number - 1);
-
-  for (let i = prevCount; i >= 1; i--) {
-    previousLines.push(view.state.doc.line(line.number - i).text);
+  const previousLinesToFetch = Math.min(5, currentLine.number - 1);
+  for (let i = previousLinesToFetch; i >= 1; i--) {
+    previousLines.push(view.state.doc.line(currentLine.number - i).text);
   }
 
   const nextLines: string[] = [];
-  const total = view.state.doc.lines;
-  const nextCount = Math.min(5, total - line.number);
-
-  for (let i = 1; i <= nextCount; i++) {
-    nextLines.push(view.state.doc.line(line.number + i).text);
+  const totalLines = view.state.doc.lines;
+  const linesToFetch = Math.min(5, totalLines - currentLine.number);
+  for (let i = 1; i <= linesToFetch; i++) {
+    nextLines.push(view.state.doc.line(currentLine.number + i).text);
   }
 
   return {
     fileName,
     code,
-    currentLine: line.text,
+    currentLine: currentLine.text,
     previousLines: previousLines.join("\n"),
-    textBeforeCursor: line.text.slice(0, cursorInLine),
-    textAfterCursor: line.text.slice(cursorInLine),
+    textBeforeCursor: currentLine.text.slice(0, cursorInLine),
+    textAfterCursor: currentLine.text.slice(cursorInLine),
     nextLines: nextLines.join("\n"),
-    lineNumber: line.number,
-  };
-};
+    lineNumber: currentLine.number,
+  }
+}
 
-const createDebouncePlugin = (fileName: string) =>
-  ViewPlugin.fromClass(
+const createDebouncePlugin = (fileName: string) => {
+  return ViewPlugin.fromClass(
     class {
       constructor(view: EditorView) {
-        this.trigger(view);
+        this.triggerSuggestion(view);
       }
 
       update(update: ViewUpdate) {
         if (update.docChanged || update.selectionSet) {
-          this.trigger(update.view);
+          this.triggerSuggestion(update.view);
         }
       }
 
-      trigger(view: EditorView) {
-        if (debounceTimer) clearTimeout(debounceTimer);
+      triggerSuggestion(view: EditorView) {
 
-        if (currentAbortController) {
-          currentAbortController.abort();
-        }
+  if (isWaitingForSuggestion) return;
 
-        debounceTimer = window.setTimeout(async () => {
-          const payload = generatePayload(view, fileName);
+  if (debounceTimer !== null) {
+    clearTimeout(debounceTimer);
+  }
 
-          if (!payload) {
-            view.dispatch({
-              effects: setSuggestionEffect.of(null),
-            });
-            return;
-          }
+  if (currentAbortController !== null) {
+    currentAbortController.abort();
+  }
 
-          currentAbortController = new AbortController();
+  debounceTimer = window.setTimeout(async () => {
 
-          const suggestion = await fetcher(
-            payload,
-            currentAbortController.signal
-          );
+    const payload = generatePayload(view, fileName);
 
-          if (currentAbortController.signal.aborted) return;
+    if (!payload) return;
 
-          if (!suggestion || !suggestion.trim()) {
-            view.dispatch({
-              effects: setSuggestionEffect.of(null),
-            });
-            return;
-          }
+    // minimum text check
+    if (payload.textBeforeCursor.trim().length < 3) return;
 
-          view.dispatch({
-            effects: setSuggestionEffect.of(suggestion),
-          });
-        }, DEBOUNCE_DELAY);
-      }
+    isWaitingForSuggestion = true;
+
+    currentAbortController = new AbortController();
+
+    const suggestion = await fetcher(
+      payload,
+      currentAbortController.signal
+    );
+
+    isWaitingForSuggestion = false;
+
+    view.dispatch({
+      effects: setSuggestionEffect.of(suggestion),
+    });
+
+  }, DEBOUNCE_DELAY);
+}
 
       destroy() {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        if (currentAbortController) currentAbortController.abort();
+        if (debounceTimer !== null) {
+          clearTimeout(debounceTimer);
+        }
+
+        if (currentAbortController !== null) {
+          currentAbortController.abort();
+        }
       }
     }
-  );
+  )
+}
 
 const renderPlugin = ViewPlugin.fromClass(
   class {
@@ -151,58 +163,69 @@ const renderPlugin = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      const suggestionChanged = update.transactions.some((tr) =>
-        tr.effects.some((e) => e.is(setSuggestionEffect))
-      );
+      // Rebuild decorations if doc changed, cursor moved, or suggestion changed
+      const suggestionChanged = update.transactions.some((transaction) => {
+        return transaction.effects.some((effect) => {
+          return effect.is(setSuggestionEffect);
+        });
+      });
 
-      if (update.docChanged || update.selectionSet || suggestionChanged) {
+      // Rebuild decorations if doc changed, cursor moved, or suggestion changed
+      const shouldRebuild =
+        update.docChanged || update.selectionSet || suggestionChanged;
+
+      if (shouldRebuild) {
         this.decorations = this.build(update.view);
       }
     }
 
     build(view: EditorView) {
+      if (isWaitingForSuggestion) {
+        return Decoration.none;
+      }
+
+      // Get current suggestion from state
       const suggestion = view.state.field(suggestionState);
-      if (!suggestion) return Decoration.none;
+      if (!suggestion) {
+        return Decoration.none;
+      }
 
+      // Create a widget decoration at the cursor position
       const cursor = view.state.selection.main.head;
-
       return Decoration.set([
         Decoration.widget({
           widget: new SuggestionWidget(suggestion),
-          side: 1,
+          side: 1, // Render after cursor (side: 1), not before (side: -1)
         }).range(cursor),
       ]);
     }
   },
-  {
-    decorations: (v) => v.decorations,
-  }
+  { decorations: (plugin) => plugin.decorations } // Tell CodeMirror to use our decorations
 );
 
-const acceptSuggestionKeyMap = keymap.of([
+const acceptSuggestionKeymap = keymap.of([
   {
     key: "Tab",
-    run(view) {
+    run: (view) => {
       const suggestion = view.state.field(suggestionState);
-
-      if (!suggestion) return false;
+      if (!suggestion) {
+        return false; // No suggestion? Let Tab do its normal thing (indent)
+      }
 
       const cursor = view.state.selection.main.head;
-
       view.dispatch({
-        changes: { from: cursor, insert: suggestion },
-        selection: { anchor: cursor + suggestion.length },
-        effects: setSuggestionEffect.of(null),
+        changes: { from: cursor, insert: suggestion }, // Insert the suggestion text
+        selection: { anchor: cursor + suggestion.length }, // Move cursor to end
+        effects: setSuggestionEffect.of(null), // Clear the suggestion
       });
-
-      return true;
+      return true; // We handled Tab, don't indent
     },
   },
 ]);
 
 export const suggestion = (fileName: string) => [
-  suggestionState,
-  createDebouncePlugin(fileName),
-  renderPlugin,
-  acceptSuggestionKeyMap,
+  suggestionState, // Our state storage
+  createDebouncePlugin(fileName), // Triggers suggestions on typing
+  renderPlugin, // Renders the ghost text
+  acceptSuggestionKeymap, // Tab to accept
 ];
