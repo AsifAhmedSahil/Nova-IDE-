@@ -61,7 +61,7 @@ export const ConversationSidebar = ({
     setPastConversationsOpen
   ] = useState(false);
 
-  const createConversation = useCreateConversation();
+  const createConversation = useCreateConversation(); 
   const conversations = useConversations(projectId);
 
   const activeConversationId =
