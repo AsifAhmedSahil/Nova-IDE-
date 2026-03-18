@@ -11,6 +11,7 @@ import { XIcon } from 'lucide-react'
 const Tab = ({fileId,isFirst,projectId}:{
     fileId: Id<"files">;
     isFirst: boolean;
+  
     projectId: Id<"projects">
 }) =>{
     const file = useFile(fileId)

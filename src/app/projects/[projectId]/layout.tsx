@@ -7,9 +7,11 @@ const Layout = async ({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ projectId: Id<"projects"> }>;
+  params: { projectId: string }; // Next.js route param = string
 }) => {
-  const { projectId } = await params;
+  // Convert string → Convex Id (type assertion)
+  const projectId = params.projectId as Id<"projects">;
+
   return <ProjectIdLayout projectId={projectId}>{children}</ProjectIdLayout>;
 };
 
