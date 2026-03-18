@@ -1,4 +1,4 @@
-import { createAgent, gemini, createNetwork } from "@inngest/agent-kit";
+import { createAgent, openai, createNetwork } from "@inngest/agent-kit";
 
 import { inngest } from "@/inngest/client";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -119,13 +119,17 @@ export const processMessage = inngest.createFunction(
 
     if (shouldGenerateTitle) {
       const titleAgent = createAgent({
-        name: "title-generator",
-        system: TITLE_GENERATOR_SYSTEM_PROMPT,
-        model: gemini({
-          model: "gemini-2.5-flash",
-          apiKey: process.env.GOOGLE_API_KEY,
-         }),
-      });
+  name: "title-generator",
+  system: TITLE_GENERATOR_SYSTEM_PROMPT,
+  model: openai({
+    model: "gpt-4o-mini", // 💸 cheap + fast
+    apiKey: process.env.OPENAI_API_KEY,
+    defaultParameters: {
+      temperature: 0.3,
+      //max_tokens: 30, // title short, cost save
+    },
+  }),
+});
 
       const { output } = await titleAgent.run(message, { step });
 
@@ -160,11 +164,14 @@ export const processMessage = inngest.createFunction(
       name: "polaris",
       description: "An expert AI coding assistant",
       system: systemPrompt,
-      model: gemini({
-        model: "gemini-2.5-flash",
-        apiKey: process.env.GOOGLE_API_KEY,
-       
-      }),
+       model: openai({
+    model: "gpt-4o-mini", // 💸 BEST for cost
+    apiKey: process.env.OPENAI_API_KEY,
+    defaultParameters: {
+      //maxTokens: 800, // ⚠️ limit response size
+      temperature: 0.5,
+    },
+  }),
       tools: [
         createListFilesTool({ internalKey, projectId }),
         createReadFilesTool({ internalKey }),
