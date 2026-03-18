@@ -1,4 +1,4 @@
-import { createAgent, anthropic, createNetwork } from '@inngest/agent-kit';
+import { createAgent, gemini, createNetwork } from "@inngest/agent-kit";
 
 import { inngest } from "@/inngest/client";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -7,8 +7,8 @@ import { convex } from "@/lib/convex-client";
 import { api } from "../../../../convex/_generated/api";
 
 // import { DEFAULT_CONVERSATION_TITLE } from "../constants";
-// import { createReadFilesTool } from './tools/read-files';
-// import { createListFilesTool } from './tools/list-files';
+import { createReadFilesTool } from './tools/read-files';
+import { createListFilesTool } from './tools/list-files';
 // import { createUpdateFileTool } from './tools/update-file';
 // import { createCreateFilesTool } from './tools/create-files';
 // import { createCreateFolderTool } from './tools/create-folder';
@@ -16,15 +16,20 @@ import { api } from "../../../../convex/_generated/api";
 // import { createDeleteFilesTool } from './tools/delete-files';
 // import { createScrapeUrlsTool } from './tools/scrape-urls';
 // update
-import { CODING_AGENT_SYSTEM_PROMPT, TITLE_GENERATOR_SYSTEM_PROMPT } from './constants';
-import { DEFAULT_CONVERSATION_TITLE } from '../../../../convex/constants';
+import {
+  CODING_AGENT_SYSTEM_PROMPT,
+  TITLE_GENERATOR_SYSTEM_PROMPT,
+} from "./constants";
+import { DEFAULT_CONVERSATION_TITLE } from "../constants";
 
 interface MessageEvent {
   messageId: Id<"messages">;
   conversationId: Id<"conversations">;
   projectId: Id<"projects">;
   message: string;
-};
+}
+
+console.log("GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY);
 
 export const processMessage = inngest.createFunction(
   {
@@ -50,23 +55,21 @@ export const processMessage = inngest.createFunction(
           });
         });
       }
-    }
+    },
   },
   {
     event: "message/sent",
   },
   async ({ event, step }) => {
-    const { 
-      messageId, 
-      conversationId,
-      projectId,
-      message
-    } = event.data as MessageEvent;
+    const { messageId, conversationId, projectId, message } =
+      event.data as MessageEvent;
 
-    const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY; 
+    const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
 
     if (!internalKey) {
-      throw new NonRetriableError("POLARIS_CONVEX_INTERNAL_KEY is not configured");
+      throw new NonRetriableError(
+        "POLARIS_CONVEX_INTERNAL_KEY is not configured",
+      );
     }
 
     // TODO: Check if this is needed
@@ -98,7 +101,7 @@ export const processMessage = inngest.createFunction(
 
     // Filter out the current processing message and empty messages
     const contextMessages = recentMessages.filter(
-      (msg) => msg._id !== messageId && msg.content.trim() !== ""
+      (msg) => msg._id !== messageId && msg.content.trim() !== "",
     );
 
     if (contextMessages.length > 0) {
@@ -114,29 +117,29 @@ export const processMessage = inngest.createFunction(
       conversation.title === DEFAULT_CONVERSATION_TITLE;
 
     if (shouldGenerateTitle) {
-       const titleAgent = createAgent({
+      const titleAgent = createAgent({
         name: "title-generator",
         system: TITLE_GENERATOR_SYSTEM_PROMPT,
-        model: anthropic({
-          model: "claude-3-5-haiku-20241022",
-          defaultParameters: { temperature: 0, max_tokens: 50 },
-        }),
-       });
+        model: gemini({
+          model: "gemini-2.5-flash",
+          apiKey: process.env.GOOGLE_API_KEY,
+         }),
+      });
 
-       const { output } = await titleAgent.run(message, { step });
+      const { output } = await titleAgent.run(message, { step });
 
-       const textMessage = output.find(
-        (m) => m.type === "text" && m.role === "assistant"
+      const textMessage = output.find(
+        (m) => m.type === "text" && m.role === "assistant",
       );
 
       if (textMessage?.type === "text") {
-         const title = 
+        const title =
           typeof textMessage.content === "string"
             ? textMessage.content.trim()
             : textMessage.content
-              .map((c) => c.text)
-              .join("")
-              .trim();
+                .map((c) => c.text)
+                .join("")
+                .trim();
 
         if (title) {
           await step.run("update-conversation-title", async () => {
@@ -149,40 +152,42 @@ export const processMessage = inngest.createFunction(
         }
       }
     }
+    
 
     // Create the coding agent with file tools
     const codingAgent = createAgent({
       name: "polaris",
       description: "An expert AI coding assistant",
       system: systemPrompt,
-       model: anthropic({
-        model: "claude-opus-4-20250514",
-        defaultParameters: { temperature: 0.3, max_tokens: 16000 }
-       }),
-       tools: [
-        // createListFilesTool({ internalKey, projectId }),
-        // createReadFilesTool({ internalKey }),
+      model: gemini({
+        model: "gemini-2.5-flash",
+        apiKey: process.env.GOOGLE_API_KEY,
+       
+      }),
+      tools: [
+        createListFilesTool({ internalKey, projectId }),
+        createReadFilesTool({ internalKey }),
         // createUpdateFileTool({ internalKey }),
         // createCreateFilesTool({ projectId, internalKey }),
         // createCreateFolderTool({ projectId, internalKey }),
         // createRenameFileTool({ internalKey }),
         // createDeleteFilesTool({ internalKey }),
         // createScrapeUrlsTool(),
-       ],
+      ],
     });
 
     // Create network with single agent
     const network = createNetwork({
-      name: "polaris-network",
+      name: "novaide-network",
       agents: [codingAgent],
-      maxIter: 20,
+      maxIter: 5,
       router: ({ network }) => {
         const lastResult = network.state.results.at(-1);
         const hasTextResponse = lastResult?.output.some(
-          (m) => m.type === "text" && m.role === "assistant"
+          (m) => m.type === "text" && m.role === "assistant",
         );
         const hasToolCalls = lastResult?.output.some(
-          (m) => m.type === "tool_call"
+          (m) => m.type === "tool_call",
         );
 
         // Anthropic outputs text AND tool calls together
@@ -191,7 +196,7 @@ export const processMessage = inngest.createFunction(
           return undefined;
         }
         return codingAgent;
-      }
+      },
     });
 
     // Run the agent
@@ -200,7 +205,7 @@ export const processMessage = inngest.createFunction(
     // Extract the assistant's text response from the last agent result
     const lastResult = result.state.results.at(-1);
     const textMessage = lastResult?.output.find(
-      (m) => m.type === "text" && m.role === "assistant"
+      (m) => m.type === "text" && m.role === "assistant",
     );
 
     let assistantResponse =
@@ -219,9 +224,9 @@ export const processMessage = inngest.createFunction(
         internalKey,
         messageId,
         content: assistantResponse,
-      })
+      });
     });
 
     return { success: true, messageId, conversationId };
-  }
+  },
 );
