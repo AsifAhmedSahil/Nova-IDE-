@@ -1,17 +1,19 @@
 "use client";
 
-import { ConversationSidebar } from "@/features/conversations/components/conversations-sidebar";
-import { Id } from "../../../../convex/_generated/dataModel";
-import Navbar from "./navbar";
 import { Allotment } from "allotment";
 
+
+
+import { Navbar } from "./navbar";
+import { Id } from "../../../../convex/_generated/dataModel";
+import { ConversationSidebar } from "@/features/conversations/components/conversations-sidebar";
 
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 800;
 const DEFAULT_CONVERSATION_SIDEBAR_WIDTH = 400;
 const DEFAULT_MAIN_SIZE = 1000;
 
-const ProjectIdLayout = ({
+export const ProjectIdLayout = ({
   children,
   projectId,
 }: {
@@ -21,28 +23,27 @@ const ProjectIdLayout = ({
   return (
     <div className="w-full h-screen flex flex-col">
       <Navbar projectId={projectId} />
-      <div className="flex-1">
+      <div className="flex-1 flex overflow-hidden">
         <Allotment
           className="flex-1"
-          defaultSizes={[DEFAULT_CONVERSATION_SIDEBAR_WIDTH, DEFAULT_MAIN_SIZE]}
+          defaultSizes={[
+            DEFAULT_CONVERSATION_SIDEBAR_WIDTH,
+            DEFAULT_MAIN_SIZE
+          ]}
         >
-            <Allotment.Pane  
+          <Allotment.Pane
             snap
             minSize={MIN_SIDEBAR_WIDTH}
             maxSize={MAX_SIDEBAR_WIDTH}
             preferredSize={DEFAULT_CONVERSATION_SIDEBAR_WIDTH}
-            >
-                <ConversationSidebar projectId={projectId}/>
-
-            </Allotment.Pane>
-            <Allotment.Pane>
-
-          {children}
-            </Allotment.Pane>
+          >
+            <ConversationSidebar projectId={projectId} />
+          </Allotment.Pane>
+          <Allotment.Pane>
+            {children}
+          </Allotment.Pane>
         </Allotment>
       </div>
     </div>
   );
 };
-
-export default ProjectIdLayout;
