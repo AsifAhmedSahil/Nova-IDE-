@@ -29,7 +29,7 @@ export const updateSettings = mutation({
     });
   },
 });
-// update
+
 export const create = mutation({
   args: {
     name: v.string(),
