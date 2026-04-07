@@ -79,7 +79,7 @@ export const getById = query({
   },
   handler: async (ctx,args) => {
     const identity = await verifyAuth(ctx);
-// pdate
+
     const project = await ctx.db.get("projects",args.id)
 
     if(!project){
