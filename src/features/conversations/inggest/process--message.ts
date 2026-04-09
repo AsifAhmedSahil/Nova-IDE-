@@ -107,6 +107,7 @@ export const processMessage = inngest.createFunction(
 
     if (contextMessages.length > 0) {
       const historyText = contextMessages
+      // update
         .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
         .join("\n\n");
 
