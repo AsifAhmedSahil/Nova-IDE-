@@ -1,10 +1,14 @@
-import { WebContainer } from "@webcontainer/api";
-import { Id } from "../../../../convex/_generated/dataModel";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { WebContainer } from "@webcontainer/api";
+
+
 import { useFiles } from "@/features/projects/hooks/use-files";
+
+import { api } from "../../../../convex/_generated/api";
+import { Id } from "../../../../convex/_generated/dataModel";
 import { buildFileTree, getFilePath } from "../utils/file--tree";
 
-// singleton webcointainer instance
+// Singleton WebContainer instance
 let webcontainerInstance: WebContainer | null = null;
 let bootPromise: Promise<WebContainer> | null = null;
 
@@ -18,7 +22,6 @@ const getWebContainer = async (): Promise<WebContainer> => {
   }
 
   webcontainerInstance = await bootPromise;
-
   return webcontainerInstance;
 };
 
@@ -37,7 +40,7 @@ interface UseWebContainerProps {
     installCommand?: string;
     devCommand?: string;
   };
-}
+};
 
 export const useWebContainer = ({
   projectId,
@@ -55,7 +58,7 @@ export const useWebContainer = ({
   const containerRef = useRef<WebContainer | null>(null);
   const hasStartedRef = useRef(false);
 
-  // fetch filed from convex
+  // Fetch files from Convex (auto-updates on changes)
   const files = useFiles(projectId);
 
   // Initial boot and mount
@@ -136,7 +139,7 @@ export const useWebContainer = ({
     settings?.installCommand,
   ]);
 
-    // Sync file changes (hot-reload)
+  // Sync file changes (hot-reload)
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !files || status !== "running") return;
@@ -151,7 +154,7 @@ export const useWebContainer = ({
     }
   }, [files, status]);
 
-   // Reset when disabled
+  // Reset when disabled
   useEffect(() => {
     if (!enabled) {
       hasStartedRef.current = false;
