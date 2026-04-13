@@ -2,7 +2,7 @@ import { generateText, Output } from "ai";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { google } from "@ai-sdk/google";
+import { openai  } from "@ai-sdk/openai";
 
 const suggestionSchema = z.object({
   suggestion: z.string(),
@@ -77,11 +77,12 @@ Suggest only the missing code at cursor.
 Return empty string if nothing needed.
 `;
 
-    const { output } = await generateText({
-      model: google("gemini-2.5-flash"),
-      output: Output.object({ schema: suggestionSchema }),
-      prompt,
-    });
+   const { output } = await generateText({
+  model: openai("gpt-4o-mini"),
+  temperature: 0, 
+  output: Output.object({ schema: suggestionSchema }),
+  prompt,
+});
 
     return NextResponse.json({
       suggestion: output.suggestion || "",
