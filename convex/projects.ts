@@ -73,6 +73,7 @@ export const get = query({
       .collect();
   },
 });
+// update
 export const getById = query({
   args: {
     id:v.id("projects")
